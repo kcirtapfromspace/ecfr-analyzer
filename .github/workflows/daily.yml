@@ -31,10 +31,10 @@ jobs:
           git ls-remote --exit-code --heads "$REPO_URL" data > /dev/null || { s=$?; [ $s -eq 2 ] && exit 0; exit $s; }
           git clone --depth 1 --branch data "$REPO_URL" data/app
       - uses: astral-sh/setup-uv@v6
-        with: {python-version: "3.12", enable-cache: true, cache-dependency-glob: app/requirements.txt}
+        with: {python-version: "3.12", enable-cache: true, cache-dependency-glob: uv.lock}
       - name: Ingest (only changed titles, unless Sunday or requested)
-        run: uv run --with-requirements app/requirements.txt app/ecfr.py ingest ${{ (github.event.schedule == '30 11 * * 0' || inputs.full) && '--full' || '' }}
-      - run: uv run --with-requirements app/requirements.txt app/ecfr.py export --out site
+        run: uv run --frozen --no-dev ecfr ingest ${{ (github.event.schedule == '30 11 * * 0' || inputs.full) && '--full' || '' }}
+      - run: uv run --frozen --no-dev ecfr export --out site
       - name: Save the store to the data branch (one force-pushed commit; history lives in agency_history/part_changes.parquet)
         working-directory: data/app
         env:

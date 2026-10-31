@@ -5,7 +5,7 @@ Verified 2026-10-30: GitHub Pages answers Range requests with HTTP 206 and sends
 ## What changes
 | Dynamic app (today) | Static site |
 |---|---|
-| FastAPI routes | `app/ecfr.py export site/` writes files, using the same query functions |
+| FastAPI routes | `uv run ecfr export` writes files, using the same query functions |
 | `/api/agencies/{slug}` etc. | `api/agencies/{slug}.json` etc., plus `api/openapi.json` describing the real `.json` paths |
 | `?agency=…&limit=…` | path params: `api/candidates/{slug}.json`, fixed limit (500) |
 | `{"detail":"not found"}` 404 | GitHub's own 404 HTML page (document it in the static contract) |

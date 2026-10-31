@@ -147,3 +147,30 @@ Codex had earlier also changed the design itself: reprocess titles whose stored 
 - First Actions run (workflow_dispatch, no `data` branch yet, so a full build): every step succeeded in about 9 minutes. The live site, the static API and Parquet Range requests (206 from the Pages CDN) all checked out.
 - Python tooling is uv only: CI uses `astral-sh/setup-uv` with `uv run --with-requirements app/requirements.txt`; there is no pip.
 - An automated security review flagged that `export` builds file paths from agency slugs, which come from eCFR data. Real slugs contain `'`, `(`, `)` and `,`, so a strict slug pattern would break 9 agencies. Instead, `write()` refuses any path that resolves outside the output directory.
+
+# Round 5: composable components
+
+The single `app/ecfr.py` became the package `app/ecfr/`. Code moved verbatim by AST line ranges, not retyped. The `STORE` global is gone: the store path is a parameter everywhere, so each module works on its own (e.g. `from ecfr.text import readability`).
+
+| Module | Lines | Responsibility | Depends on |
+|---|---|---|---|
+| `source.py` | 72 | eCFR API client, raw cache, catalog dates | stdlib |
+| `text.py` | 90 | Metrics on strings: words, restriction terms, authority tags, sentences, readability | stdlib |
+| `parse.py` | 54 | Stream a title's XML into part rows (reuses unchanged sentence metrics) | text |
+| `model.py` | 3 | Definitions shared by the build and the read layer | — |
+| `build.py` | 309 | DuckDB build: incremental ingest, analytics, ranking, history, meta | source, parse, text, model |
+| `queries.py` | 130 | Read queries shared by the API and the export | text, model |
+| `site.py` | 102 | Static export; owns `templates/` and `static/` | queries, source |
+| `api.py` | 37 | FastAPI `create_app(store, site)` and `serve` | queries, source |
+| `cli.py` | 33 | The `ecfr` console script | build, site, api |
+
+- The dependency graph is acyclic and points one way: data in → build → read → outputs.
+- Packaging moved to `pyproject.toml` + `uv.lock` (uv only; `requirements.txt` removed). Run it with `uv sync` then `uv run ecfr …`; CI uses `uv run --frozen --no-dev ecfr …`.
+
+**Equivalence (the refactor changes no output):**
+- The new code's export of the current store is identical to the old one on all 1,961 files (JSON parse-equal, HTML byte-equal).
+- A new-code 46-title rebuild (10-27 full → 10-29 incremental) equals the old-code result on all 1,269 API files including history (floats within 1.8e-11).
+- The live API equals the static files.
+- Codex reviewed it and agreed, with no required changes. Its one suggestion, moving shared constants out of `build.py` so the read layer doesn't load ingest code, was applied (`model.py`) and re-verified.
+
+**Size:** app 1,183 code lines (was 1,151; imports and module docstrings account for the difference) + workflow 48 + `pyproject.toml` 15 = 1,246. The app code alone is under 1,200; counting CI and packaging config, it is 46 over. Getting the total back under would mean dropping a requested feature (e.g. the scatter plot, ~30 lines, or the SQL explorer, ~45 lines), which is the user's call.
