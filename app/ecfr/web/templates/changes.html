@@ -1,0 +1,23 @@
+{% if changes %}
+<section class="panel">
+  <h2>Recent changes</h2>
+  <div class="table-wrap">
+    <table class="parts">
+      <thead><tr><th>eCFR date</th><th>Part</th><th>Change</th><th>Words before</th><th>Words after</th></tr></thead>
+      <tbody>
+      {% for c in changes %}
+      <tr>
+        <td>{{ c.ecfr_date }}</td>
+        <td><a href="https://www.ecfr.gov/current/title-{{ c.title }}/part-{{ c.part }}" target="_blank" rel="noopener">{{ c.title }} CFR {{ c.part }}</a>
+          <span class="sub">{{ c.heading | heading }}</span></td>
+        <td>{{ c.change }}</td>
+        <td data-v="{{ c.words_before if c.words_before is not none }}">{{ c.words_before | num }}</td>
+        <td data-v="{{ c.words_after if c.words_after is not none }}">{{ c.words_after | num }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="note">Parts added, modified or removed across the CFR, found by comparing text hashes between daily refreshes.</p>
+</section>
+{% endif %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Explore data · {% endblock %}
+{% block main %}
+<h1>Explore the data with SQL</h1>
+<section class="panel" id="explore" data-titles="{{ meta.titles | join(',') }}">
+  <p class="note">DuckDB runs in your browser on the Parquet files: parts, agencies, agency_parts, versions, agency_history,
+    part_changes, and the view parts_text. The first query loads DuckDB-WASM (approximately 30 MB).</p>
+  <textarea id="sql" rows="5" aria-label="SQL query">SELECT title, part, heading, words, round(x_grade, 1) AS grade, paperwork, rank
+FROM 'parts.parquet' WHERE rank IS NOT NULL ORDER BY rank LIMIT 20</textarea>
+  <button id="run">Run query</button> <span id="status" class="sub"></span>
+  <div id="result" class="table-wrap"></div>
+</section>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ a.name }} · {% endblock %}
+{% block main %}
+{% set r = a.readability %}
+<nav class="crumbs"><a href="./">Overview</a> ›
+  {% if parent %}<a href="agency/{{ parent.slug | urlencode }}/">{{ parent.name }}</a> ›{% endif %} {{ a.name }}</nav>
+<h1>{{ a.name }}{% if a.short_name %} <span class="sub">({{ a.short_name }})</span>{% endif %}</h1>
+<section class="cards">
+  {% for value, label in [
+    (a.words | num, "Words in " ~ (a.parts | num) ~ " parts"),
+    (a.density | f1, "Restriction density"),
+    (r.fk_grade | f1, "Reading grade"),
+    (a.stale_share | pct, "Unchanged since 2017"),
+    (a.flagged_parts | num, "Flagged parts"),
+    (a.last_changed or "—", "Last change"),
+  ] %}
+  <div class="card"><b>{{ value }}</b><span>{{ label }}</span></div>
+  {% endfor %}
+</section>
+<div class="grid">
+  <section class="panel">
+    <h2>Section changes per year</h2>
+    <div class="chart-box"><canvas data-chart='{{ {"kind": "history", "data": history} | tojson }}'></canvas></div>
+    <p class="note">From the eCFR versioner, for the parts that the agency owns now. Before 2017 is the baseline load.</p>
+  </section>
+  <section class="panel">
+    <h2>Text and size</h2>
+    <dl class="kv">
+      <dt>Sentences</dt><dd>{{ r.words_per_sentence | f1 }} words on average; {{ r.long_share | pct }} over 40 words;
+        {{ r.passive_share | pct }} passive; {{ r.crossrefs_per_1k | f1 }} cross-references per 1,000 words</dd>
+      <dt>Sentence types</dt>
+      <dd>{% for t, n in a.sentence_types.items() if n %}{{ t }} {{ (n / r.sentences) | pct }}{{ " · " if not loop.last }}{% endfor %}</dd>
+      <dt>Checksum</dt><dd><code>{{ a.checksum or "—" }}</code>{% if a.changed %} <span class="badge">changed since last refresh</span>{% endif %}</dd>
+    </dl>
+    {% if trend | length > 1 %}<div class="chart-box"><canvas data-chart='{{ {"kind": "trend", "data": trend} | tojson }}'></canvas></div>
+    {% else %}<p class="note">Daily size snapshots start {{ trend[0].date if trend else meta.ecfr_date }}; a chart appears after the next refresh.</p>{% endif %}
+  </section>
+</div>
+<section class="panel">
+  <h2>Review candidates in this agency</h2>
+  {% include "candidates.html" %}
+</section>
+<div class="grid">
+  <section class="panel">
+    <h2>Statutes behind the most text</h2>
+    <ul>{% for s in a.top_statutes %}<li>{{ s.cite }}: {{ s.words | num }} words in {{ s.parts | num }} parts
+      ({{ (s.words / a.words) | pct }} of this agency's text)</li>{% else %}<li>None cited</li>{% endfor %}</ul>
+    <p class="note">From the authority notes. A citation is not proof that the statute requires the rule.</p>
+  </section>
+  <section class="panel">
+    <h2>Largest parts</h2>
+    <ul>{% for p in a.top_parts %}<li>{{ p.title }} CFR {{ p.part }}: {{ p.heading | heading }} ({{ p.words | num }} words)</li>{% endfor %}</ul>
+    {% if children %}<h2>Sub-agencies</h2>
+    <ul>{% for c in children %}<li><a href="agency/{{ c.slug | urlencode }}/">{{ c.name }}</a></li>{% endfor %}</ul>{% endif %}
+  </section>
+</div>
+<p class="note">Reading grade and sentence types are approximate. Simple rules label each sentence; the first match wins.</p>
+{% endblock %}

@@ -25,9 +25,9 @@ The site also gives each part of the CFR a **review candidate** score. The score
 ## How it works
 
 - `ecfr ingest` downloads the eCFR XML, the version history and the agencies into Parquet files. After the first run, it processes only the titles that changed.
-- `ecfr export` writes the static site: htmx pages, the JSON API as files, and the Parquet data.
+- `ecfr export` writes the static site: an overview, a page for each agency (`agency/<slug>/`) and an SQL page (`explore/`). It also writes the JSON API as files and the Parquet data.
 - `ecfr serve` gives the same API from a FastAPI server (documentation at `/docs`).
-- In the browser, you can sort tables, search agencies and query the Parquet files with SQL (DuckDB-WASM).
+- Each page has a URL. The search box in the header finds agencies from any page. You can sort each table, and query the Parquet files with SQL (DuckDB-WASM).
 - Each day, GitHub Actions updates the data and publishes the site to GitHub Pages. The data stays on the `data` branch.
 
 ## Code layout
@@ -65,8 +65,8 @@ npm run e2e                                # browser tests of site/ under /ecfr-
 - **DuckDB and Parquet.** We measured three backends: Python with SQLite, Python with DuckDB and Parquet, and Rust. The Rust ingest was 2.4 times faster, but this data does not need that speed. With Parquet, the server and the browser query the same files.
 - **Static site.** GitHub Pages hosts the pages and the API as files, so there is no server to operate.
 - **Rule-based sentence types.** Jev is a closed, hosted API that we cannot embed. Rules are easy to explain.
-- **htmx.** SvelteKit was the first choice for its type checks and tests. But with SvelteKit, the app needs approximately 1,400 lines (an estimate). With a plain JavaScript port, it needs 1,228 lines (branch `raw-js-port`). With htmx, the app stays below 1,200 lines.
-- **Size.** The app has 1,176 lines of code (`tokei app --exclude tests`). CI fails above 1,200.
+- **Pre-rendered pages.** SvelteKit was the first choice for its type checks and tests. But with SvelteKit, the app needs approximately 1,400 lines (an estimate). With a plain JavaScript port, it needs 1,228 lines (branch `raw-js-port`). Jinja pages with one small script keep the app at 1,200 lines.
+- **Size.** The app has 1,200 lines of code (`tokei app --exclude tests`). CI fails above 1,200.
 - **Open item.** The paperwork share controls the top of the list. A ±3 limit on each z-score can correct this. This is not decided.
 
 ## How we checked the results

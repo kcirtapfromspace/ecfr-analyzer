@@ -1,4 +1,4 @@
-"""Static site export for GitHub Pages: JSON API files, htmx fragments and the Parquet data."""
+"""Static site export for GitHub Pages: the pages, the JSON API as files, and the Parquet data."""
 
 import hashlib
 import json
@@ -8,7 +8,7 @@ import shutil
 import jinja2
 
 from . import queries
-from ..core.model import load_json
+from ..core.model import INPUTS, load_json
 
 HERE = os.path.dirname(os.path.abspath(__file__))  # templates/ and static/ ship inside the package
 STATIC_API = {
@@ -34,6 +34,9 @@ def export(store, out):
         num=lambda n: "—" if n is None else f"{n:,}",
         f1=lambda x: "—" if x is None else f"{x:.1f}",
         pct=lambda x: "—" if x is None else f"{100 * x:.1f}%",
+        heading=lambda h: (h or "").split("—", 1)[
+            -1
+        ],  # "PART 63—NATIONAL ..." without the repeated part number
     )
     shutil.rmtree(out, ignore_errors=True)
     shutil.copytree(f"{HERE}/static", f"{out}/static")
@@ -58,10 +61,14 @@ def export(store, out):
 
     version = digest.hexdigest()[:10]
 
-    def page(path, template, **context):
-        write(path, env.get_template(template).render(meta=meta, version=version, **context))
-
     agencies = queries.agency_list(con)
+    by_slug = {a["slug"]: a for a in agencies}
+
+    def page(path, template, **context):  # root: the way back from the page to the site root
+        root = "../" * path.count("/") or "./"
+        context |= dict(meta=meta, version=version, agencies=agencies, metrics=INPUTS, root=root)
+        write(path, env.get_template(template).render(**context))
+
     top = queries.candidate_list(con, meta, None, 500)
     api("meta", meta)
     api("agencies", agencies)
@@ -81,34 +88,26 @@ def export(store, out):
         for path, value in ((slug, detail), (f"{slug}/history", years), (f"{slug}/trend", trend)):
             api(f"agencies/{path}", value)
         api(f"candidates/{slug}", candidates)
-        first = {**candidates, "candidates": candidates["candidates"][:25]}
-        page(f"ui/candidates/{slug}.html", "candidates.html", candidates=first)
         page(
-            f"ui/agency/{slug}.html",
-            "detail.html",
+            f"agency/{slug}/index.html",
+            "agency.html",
             a=detail,
+            parent=by_slug.get(detail["parent_slug"]),
+            children=[by_slug[c] for c in detail["children"]],
             history=years["years"],
             trend=trend["days"],
-            candidates={**candidates, "candidates": candidates["candidates"][:5]},
+            candidates={**candidates, "candidates": candidates["candidates"][:25]},
         )
-    first = {**top, "candidates": top["candidates"][:25]}
-    page("ui/candidates/all.html", "candidates.html", candidates=first)
-    top_level = [a for a in agencies if not a["parent_slug"]]
     page(
         "index.html",
         "index.html",
-        rows=[
-            r
-            for p in top_level
-            for r in [p] + [c for c in agencies if c["parent_slug"] == p["slug"]]
-        ],
         scatter=[
             [a["short_name"] or a["name"], a["words"], a["density"], a["slug"]]
-            for a in top_level
-            if a["words"] >= 1000
+            for a in agencies
+            if not a["parent_slug"] and a["words"] >= 1000
         ],
-        candidates=first,
+        candidates={**top, "candidates": top["candidates"][:25]},
         changes=queries.recent_changes(con, 50)["changes"],
-        filters=[a for a in agencies if a["flagged_parts"]],
     )
+    page("explore/index.html", "explore.html")
     print(f"exported {out}/ for eCFR {meta['ecfr_date']} ({len(agencies)} agencies)")

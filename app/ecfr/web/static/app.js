@@ -1,8 +1,8 @@
-// Charts are declared by the server as <canvas data-chart='{"kind": ..., "data": ...}'> and drawn after every htmx swap.
+// Charts are declared by the server as <canvas data-chart='{"kind": ..., "data": ...}'> and drawn on page load.
+// Every relative URL resolves from the site root, which each page sets with <base href>.
 const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 const fmt = n => Number(n).toLocaleString("en-US");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const showAgency = slug => htmx.ajax("GET", `ui/agency/${slug}.html`, "#detail");
 const axis = (text, extra = {}) => ({
   ...extra, title: { display: !!text, text, color: css("--muted") },
   ticks: { color: css("--muted") }, grid: { color: css("--line") },
@@ -30,7 +30,7 @@ const charts = {
         maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { filter: i => i.datasetIndex === 0, callbacks: {
           label: c => `${rows[c.dataIndex][0]}: ${fmt(c.raw.x)} words, ${c.raw.y.toFixed(1)} per 1k` } } },
-        onClick: (_, els) => { const e = els.find(e => e.datasetIndex === 0); if (e) showAgency(rows[e.index][3]); },
+        onClick: (_, els) => { const e = els.find(e => e.datasetIndex === 0); if (e) location.assign(new URL(`agency/${encodeURIComponent(rows[e.index][3])}/`, document.baseURI)); },
         scales: { x: axis("Words (log scale)", { type: "logarithmic" }), y: axis("Restriction terms per 1,000 words") },
       },
     };
@@ -49,11 +49,10 @@ const charts = {
   }),
 };
 
-htmx.onLoad(root => root.querySelectorAll("canvas[data-chart]").forEach(canvas => {
+document.querySelectorAll("canvas[data-chart]").forEach(canvas => {
   const spec = JSON.parse(canvas.dataset.chart);
-  Chart.getChart(canvas)?.destroy();
   new Chart(canvas, charts[spec.kind](spec.data));
-}));
+});
 
 // Explore panel: DuckDB-WASM queries the server's Parquet files over HTTP Range requests, entirely in the browser.
 let duck = null;
@@ -66,7 +65,7 @@ async function connectDuckDB() {
   URL.revokeObjectURL(workerUrl);
   const texts = document.getElementById("explore").dataset.titles.split(",").map(n => `text/title-${n}.parquet`);
   for (const name of ["parts", "agencies", "agency_parts", "versions", "agency_history", "part_changes"].map(n => `${n}.parquet`).concat(texts)) {
-    await db.registerFileURL(name, new URL(`data/${name}`, location.href).href, duckdb.DuckDBDataProtocol.HTTP, false);
+    await db.registerFileURL(name, new URL(`data/${name}`, document.baseURI).href, duckdb.DuckDBDataProtocol.HTTP, false);
   }
   const conn = await db.connect();
   await conn.query(`CREATE VIEW parts_text AS SELECT * FROM read_parquet([${texts.map(t => `'${t}'`).join(", ")}])`);
@@ -119,13 +118,13 @@ document.addEventListener("click", e => {
   body.append(...(dir === "desc" ? rows.reverse() : rows));
 });
 
-// Search spans every agency; with no query only top-level agencies show.
+// The table filter spans every agency; with no query only top-level agencies show.
 document.addEventListener("input", e => {
   if (e.target.id !== "q") return;
   const q = e.target.value.trim().toLowerCase();
-  for (const tr of document.querySelectorAll("#rows tr")) tr.hidden = q ? !tr.dataset.search.includes(q) : tr.classList.contains("child");
+  for (const tr of document.querySelectorAll("#agencies tbody tr")) tr.hidden = q ? !tr.dataset.search.includes(q) : tr.classList.contains("child");
 });
 
-document.addEventListener("change", e => {
-  if (e.target.name === "agency") htmx.ajax("GET", `ui/candidates/${e.target.value || "all"}.html`, "#candidates");
-});
+// The header search box is the agency filter: on other pages it opens the overview with ?q=, applied here.
+const query = new URLSearchParams(location.search).get("q");
+if (query) Object.assign(document.getElementById("q"), { value: query }).dispatchEvent(new Event("input", { bubbles: true }));

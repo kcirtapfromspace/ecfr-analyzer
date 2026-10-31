@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base href="{{ root }}">{# every relative URL below and in app.js resolves from the site root #}
+<title>{% block title %}{% endblock %}eCFR Analyzer</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="static/style.css?v={{ version }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+<script src="static/app.js?v={{ version }}" defer></script>
+</head>
+<body>
+<header>
+  <a class="brand" href="./">eCFR Analyzer</a>
+  <nav><a href="./">Overview</a><a href="explore/">Explore data</a></nav>
+  <form action="./" role="search"><input type="search" id="q" name="q" placeholder="Find an agency (name or abbreviation)" aria-label="Find an agency"></form>
+</header>
+<main>
+{% block main %}{% endblock %}
+<footer class="sub">eCFR data of {{ meta.ecfr_date }}, updated daily · <a href="api/openapi.json">JSON API</a> · <a href="https://github.com/kcirtapfromspace/ecfr-analyzer">Source</a></footer>
+</main>
+</body>
+</html>
