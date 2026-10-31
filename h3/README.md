@@ -26,8 +26,8 @@ connection. Agency changes compare checksums against the previous H3 store.
 ```sh
 (cd h3 && CARGO_HOME=$PWD/.cargo cargo fmt --check)
 (cd h3 && CARGO_HOME=$PWD/.cargo cargo test --release --offline)
-python3 h3/tests/fixtures.py
-python3 h3/tests/verify.py
+uv run h3/tests/fixtures.py
+uv run h3/tests/verify.py
 tokei h3/src --files
 ```
 

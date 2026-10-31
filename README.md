@@ -19,10 +19,10 @@ It also ranks parts of the CFR as **review candidates** (not findings of over-re
 
 ## Run locally
 ```sh
-python3 -m venv .venv && .venv/bin/pip install -r app/requirements.txt
-.venv/bin/python app/ecfr.py ingest      # first run: full build, ~4 min plus download
-.venv/bin/python app/ecfr.py export      # writes site/
-.venv/bin/python app/ecfr.py serve       # http://127.0.0.1:8310 (API docs at /docs)
+alias ecfr="uv run --python 3.12 --with-requirements app/requirements.txt app/ecfr.py"
+ecfr ingest      # first run: full build, ~4 min plus download
+ecfr export      # writes site/
+ecfr serve       # http://127.0.0.1:8310 (API docs at /docs)
 ```
 
 ## Metrics (exact definitions in [CONTRACT.md](CONTRACT.md))

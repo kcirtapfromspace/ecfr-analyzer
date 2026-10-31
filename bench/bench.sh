@@ -4,7 +4,7 @@
 set -u
 DATE=$1; shift
 OUT=bench/results; mkdir -p "$OUT"
-PY=(.venv/bin/python -I)
+PY=(uv run python -I)
 cmd() { if [ "$1" = h3 ]; then echo h3/target/release/ecfr; else echo "${PY[*]} $1/ecfr.py"; fi; }
 port() { echo "830${1#h}"; }
 

@@ -1,9 +1,9 @@
 """eCFR analyzer: daily incremental ingest into Parquet, a static site export, and a JSON API.
 
 Usage (from the repo root; the store defaults to --store data/app):
-  python app/ecfr.py ingest [--date D] [--titles 1,40] [--full]   incremental against the store unless --full
-  python app/ecfr.py export [--out site]                          static site: pages, JSON API, Parquet
-  python app/ecfr.py serve [--port 8310] [--site site]            JSON API (+ /docs) serving the exported site
+  uv run app/ecfr.py ingest [--date D] [--titles 1,40] [--full]   incremental against the store unless --full
+  uv run app/ecfr.py export [--out site]                          static site: pages, JSON API, Parquet
+  uv run app/ecfr.py serve [--port 8310] [--site site]            JSON API (+ /docs) serving the exported site
 """
 
 import argparse
@@ -783,9 +783,12 @@ def export(out):
         STORE, f"{out}/data", ignore=shutil.ignore_patterns("versions_all.parquet", "titles.json")
     )
 
-    def write(path, text):
-        os.makedirs(os.path.dirname(f"{out}/{path}"), exist_ok=True)
-        with open(f"{out}/{path}", "w") as f:
+    def write(path, text):  # paths contain agency slugs from eCFR data: never write outside out/
+        target = os.path.realpath(f"{out}/{path}")
+        if not target.startswith(os.path.realpath(out) + os.sep):
+            raise SystemExit(f"refusing to write outside {out}: {path!r}")
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        with open(target, "w") as f:
             f.write(text)
 
     def api(path, value):
@@ -863,9 +866,7 @@ def serve(port, site):
         except NotFound:
             raise HTTPException(404, "not found") from None
 
-    @app.get("/api/meta")
-    def api_meta():
-        return meta
+    app.get("/api/meta")(lambda: meta)
 
     @app.get("/api/agencies")
     def api_agencies():

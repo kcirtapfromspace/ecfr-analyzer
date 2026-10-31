@@ -5,7 +5,7 @@ All three variants must produce **identical JSON** for the four API routes (chec
 ## CLI (every variant)
 - `ingest --date 2026-10-29 [--titles 1,40,41]`: download into the cache if needed, then build the variant's store. `--titles` defaults to every non-reserved title.
 - `serve --port N`: serve the API plus `GET /` → `web/index.html` (shared file, read from disk).
-- H1: `python3 h1/ecfr.py ingest|serve ...`. H2: `python3 h2/ecfr.py ingest|serve ...`. H3: `h3/target/release/ecfr ingest|serve ...`.
+- H1: `uv run h1/ecfr.py ingest|serve ...`. H2: `uv run h2/ecfr.py ingest|serve ...`. H3: `h3/target/release/ecfr ingest|serve ...`.
 - Paths are relative to the repo root (`~/usds-ecfr`). Run from the repo root.
 
 ## Raw cache (shared; any variant may fill it; a cache hit means skip the download)

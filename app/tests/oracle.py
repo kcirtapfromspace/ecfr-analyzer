@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Independent CONTRACT.md Round 3 oracle; standard library and raw cache only.
 
-Run from the repository root with .venv/bin/python -I app/tests/oracle.py
+Run from the repository root with uv run app/tests/oracle.py
 --dump expected.json and/or --base http://127.0.0.1:PORT. No application,
 H1, or H2 code is imported or consulted. No download or store is needed.
 

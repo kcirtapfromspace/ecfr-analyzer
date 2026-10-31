@@ -45,7 +45,7 @@ Line counts are code lines only: blanks, comments, tests and benchmark scripts a
 ## Reproduce
 ```sh
 cd ~/usds-ecfr
-.venv/bin/python -I h1/ecfr.py ingest --date 2026-10-29        # fills data/raw/ on first run (~2 min)
+uv run h1/ecfr.py ingest --date 2026-10-29        # fills data/raw/ on first run (~2 min)
 (cd h3 && CARGO_HOME=$PWD/.cargo cargo build --release --offline)
 bench/bench.sh 2026-10-29                                       # ingests all three, parity, latency
 ```
@@ -141,3 +141,9 @@ Codex had earlier also changed the design itself: reprocess titles whose stored 
 **Size:** app 1,151 code lines (Python 799, templates 172, JS 123, CSS 57) + workflow 49 = **1,200**. Getting there took real simplifications (one schema string, a shared catalog helper, flattened history files), not cramming. One cosmetic CSS rule was dropped.
 
 **Not done (needs the user):** create the public repo, push, set Pages to "GitHub Actions", run the first full build. Scheduled workflows in public repos can be auto-disabled after long repository inactivity; check whether the daily data-branch push keeps the schedule alive.
+
+## Deployment (2026-10-31)
+- Public repo: https://github.com/kcirtapfromspace/ecfr-analyzer · site: https://kcirtapfromspace.github.io/ecfr-analyzer/
+- First Actions run (workflow_dispatch, no `data` branch yet, so a full build): every step succeeded in about 9 minutes. The live site, the static API and Parquet Range requests (206 from the Pages CDN) all checked out.
+- Python tooling is uv only: CI uses `astral-sh/setup-uv` with `uv run --with-requirements app/requirements.txt`; there is no pip.
+- An automated security review flagged that `export` builds file paths from agency slugs, which come from eCFR data. Real slugs contain `'`, `(`, `)` and `,`, so a strict slug pattern would break 9 agencies. Instead, `write()` refuses any path that resolves outside the output directory.
