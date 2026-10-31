@@ -23,7 +23,7 @@ jobs:
           uv run --frozen python -I app/tests/oracle_comparison_selftest.py
       - name: Cache tokei (no release binaries for 15.0.0, so it is built once)
         uses: actions/cache@v4
-        with: {path: ~/.cargo/bin/tokei, key: tokei-15.0.0-${{ runner.os }}}
+        with: {path: ~/.cargo/bin/tokei, key: "tokei-15.0.0-${{ runner.os }}"}
       - run: command -v tokei || cargo install tokei@15.0.0 --locked
       - name: Line budget (tokei app --exclude tests, at most 1,200 code lines)
         run: uv run --frozen python app/tests/loc_gate.py
