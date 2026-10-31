@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eCFR Analyzer</title>
+<link rel="icon" href="data:,">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #fff; --ink: #1b1d21; --muted: #5f6672; --line: #e2e2dd;
+    --accent: #1f5fae; --accent-soft: #dfe9f6; --warn: #a3470d; --warn-soft: #fbe9dc;
+    --s1: #1f5fae; --s2: #8fb3e0; --s3: #c2410c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121418; --panel: #1b1e24; --ink: #e8e9eb; --muted: #9aa1ad; --line: #2c3038;
+      --accent: #7aa7e6; --accent-soft: #23324a; --warn: #f0a46c; --warn-soft: #3a2618;
+      --s1: #7aa7e6; --s2: #3d5f8f; --s3: #f0a46c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 system-ui, sans-serif; }
+  header { padding: 20px 24px 8px; }
+  h1 { margin: 0; font-size: 20px; }
+  h2 { margin: 0 0 10px; font-size: 15px; }
+  .sub { color: var(--muted); }
+  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; padding: 12px 24px 32px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; padding: 12px 16px; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 0 24px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+  .card b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .card span { color: var(--muted); font-size: 12px; }
+  input[type=search] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--bg); color: var(--ink); margin-bottom: 10px; font: inherit; }
+  .table-wrap { max-height: 560px; overflow: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+  th:first-child, td:first-child { text-align: left; white-space: normal; }
+  th { position: sticky; top: 0; background: var(--panel); cursor: pointer; user-select: none; font-size: 12px; color: var(--muted); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover, tbody tr.sel { background: var(--accent-soft); }
+  tr.child td:first-child { padding-left: 26px; color: var(--muted); }
+  .toggle { display: inline-block; width: 16px; color: var(--muted); }
+  .badge { font-size: 11px; padding: 1px 6px; border-radius: 10px; background: var(--warn-soft); color: var(--warn); }
+  code { font-size: 12px; word-break: break-all; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 10px 0; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  button { font: inherit; font-size: 12px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 4px;
+    background: var(--bg); color: var(--ink); cursor: pointer; }
+  .chart-box { position: relative; height: 220px; }
+  ul.parts { padding-left: 18px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>eCFR Analyzer</h1>
+  <div class="sub" id="snapshot">Loading…</div>
+</header>
+<section class="cards" id="cards"></section>
+<main>
+  <div>
+    <div class="panel" style="margin-bottom: 16px">
+      <h2>Largest agencies by word count</h2>
+      <div class="chart-box" style="height: 300px"><canvas id="top"></canvas></div>
+    </div>
+    <div class="panel" style="margin-bottom: 16px">
+      <h2>Size vs. restriction density</h2>
+      <div class="chart-box" style="height: 320px"><canvas id="scatter"></canvas></div>
+      <p class="note">Top-level agencies with at least 1,000 words. Dashed lines are the medians, so the upper right holds large rulebooks with dense
+        obligation language: a place to start a review, not a verdict. Click a point for details.</p>
+    </div>
+    <div class="panel">
+      <h2>Agencies</h2>
+      <input type="search" id="q" placeholder="Filter by name or abbreviation">
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th data-k="name">Agency</th><th data-k="words">Words</th><th data-k="density">Restrictions / 1k</th>
+            <th data-k="parts">Parts</th><th data-k="stale_share">Unchanged since 2017</th><th data-k="last_changed">Last change</th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+      <p class="note">Parent agencies include their sub-agencies' parts, each counted once. Agencies can share parts, so totals are not additive.</p>
+    </div>
+  </div>
+  <div class="panel" id="detail"><p class="sub">Select an agency to see its details.</p></div>
+</main>
+<script>
+const fmt = n => n == null ? "—" : Number(n).toLocaleString("en-US");
+const fmt1 = n => n == null ? "—" : Number(n).toFixed(1);
+const pct = x => x == null ? "—" : (100 * x).toFixed(1) + "%";
+const LABEL = { statute: "cites a specific statute", housekeeping: "cites only 5 U.S.C. 301",
+  executive: "cites only executive orders", other: "other citation", none: "no authority note" };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const getJSON = url => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r.status));
+
+let agencies = [], sortKey = "words", sortDir = -1, open = new Set(), selected = null, historyChart = null;
+
+async function init() {
+  const [meta, list] = await Promise.all([getJSON("/api/meta"), getJSON("/api/agencies")]);
+  agencies = list;
+  document.getElementById("snapshot").textContent =
+    `eCFR data as of ${meta.ecfr_date} · ingested ${meta.ingested_at} · titles ${meta.titles.join(", ")}`;
+  const covered = meta.words ? 100 * (1 - meta.unattributed_words / meta.words) : 0;
+  document.getElementById("cards").innerHTML = [
+    ["Words in regulations", fmt(meta.words)],
+    ["Parts", fmt(meta.parts)],
+    ["Words attributed to an agency", covered.toFixed(1) + "%"],
+    ["Section changes since 2017", fmt(meta.change_rows)],
+    ["Baseline version rows (pre-2017)", fmt(meta.baseline_rows)],
+    ["Changes with no current part", fmt(meta.unmatched_events)],
+    ["Sections unchanged since 2017", pct(meta.sections ? meta.stale_sections / meta.sections : null)],
+  ].map(([label, value]) => `<div class="card"><b>${value}</b><span>${label}</span></div>`).join("");
+  drawTop();
+  drawScatter();
+  renderTable();
+}
+
+function drawTop() {
+  const top = agencies.filter(a => !a.parent_slug && a.words > 0).slice(0, 15);
+  new Chart(document.getElementById("top"), {
+    type: "bar",
+    data: { labels: top.map(a => a.short_name || a.name), datasets: [{ data: top.map(a => a.words), backgroundColor: css("--s1") }] },
+    options: {
+      indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false } },
+      onClick: (_, els) => els.length && select(top[els[0].index].slug),
+      scales: { x: { ticks: { color: css("--muted") }, grid: { color: css("--line") } }, y: { ticks: { color: css("--ink") } } },
+    },
+  });
+}
+
+function drawScatter() {
+  const pts = agencies.filter(a => !a.parent_slug && a.words >= 1000);
+  const median = xs => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)];
+  const mx = median(pts.map(a => a.words)), my = median(pts.map(a => a.density));
+  const xs = pts.map(a => a.words), top = Math.max(...pts.map(a => a.density));
+  const guide = data => ({ data, showLine: true, pointRadius: 0, borderWidth: 1, borderDash: [4, 4], borderColor: css("--muted") });
+  const axis = text => ({ title: { display: true, text, color: css("--muted") }, ticks: { color: css("--muted") }, grid: { color: css("--line") } });
+  new Chart(document.getElementById("scatter"), {
+    type: "scatter",
+    data: { datasets: [
+      { data: pts.map(a => ({ x: a.words, y: a.density, a })), backgroundColor: css("--s1") },
+      guide([{ x: mx, y: 0 }, { x: mx, y: top }]),
+      guide([{ x: Math.min(...xs), y: my }, { x: Math.max(...xs), y: my }]),
+    ] },
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { filter: i => i.datasetIndex === 0, callbacks: {
+        label: c => `${c.raw.a.short_name || c.raw.a.name}: ${fmt(c.raw.x)} words, ${fmt1(c.raw.y)} per 1k` } } },
+      onClick: (_, els) => { const e = els.find(e => e.datasetIndex === 0); if (e) select(pts[e.index].slug); },
+      scales: { x: { type: "logarithmic", ...axis("Words (log scale)") }, y: axis("Restriction terms per 1,000 words") },
+    },
+  });
+}
+
+function compare(a, b) {
+  const x = a[sortKey], y = b[sortKey];
+  if (x == null) return 1;
+  if (y == null) return -1;
+  return (typeof x === "string" ? x.localeCompare(y) : x - y) * sortDir;
+}
+
+function row(a, isChild) {
+  const kids = agencies.filter(c => c.parent_slug === a.slug).length;
+  const toggle = isChild ? "" : `<span class="toggle">${kids ? (open.has(a.slug) ? "▾" : "▸") : ""}</span>`;
+  const label = `${toggle}${esc(a.name)}${a.short_name ? ` <span class="sub">(${esc(a.short_name)})</span>` : ""}`;
+  return `<tr data-slug="${a.slug}" class="${isChild ? "child" : ""} ${a.slug === selected ? "sel" : ""}">
+    <td>${label} ${a.changed ? '<span class="badge">changed</span>' : ""}</td>
+    <td>${fmt(a.words)}</td><td>${fmt1(a.density)}</td><td>${fmt(a.parts)}</td><td>${pct(a.stale_share)}</td>
+    <td>${a.last_changed ?? "—"}</td></tr>`;
+}
+
+function renderTable() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  const hit = a => !q || a.name.toLowerCase().includes(q) || (a.short_name || "").toLowerCase().includes(q);
+  const parents = agencies.filter(a => !a.parent_slug).sort(compare);
+  const html = [];
+  for (const p of parents) {
+    const kids = agencies.filter(c => c.parent_slug === p.slug).sort(compare);
+    const kidHits = kids.filter(hit);
+    if (!hit(p) && !kidHits.length) continue;
+    html.push(row(p, false));
+    if (open.has(p.slug) || (q && kidHits.length)) html.push(...(q ? kidHits : kids).map(k => row(k, true)));
+  }
+  document.getElementById("rows").innerHTML = html.join("") || '<tr><td colspan="6">No matches</td></tr>';
+}
+
+async function select(slug) {
+  selected = slug;
+  renderTable();
+  const [a, h] = await Promise.all([getJSON(`/api/agencies/${slug}`), getJSON(`/api/agencies/${slug}/history`)]);
+  const refs = a.refs.map(r => Object.entries(r).map(([k, v]) => `${k} ${v}`).join(", ")).join("<br>");
+  const basis = Object.entries(a.authority_words).filter(([, w]) => a.words && w / a.words >= 0.001)
+    .map(([k, w]) => `${LABEL[k]} ${pct(w / a.words)}`).join("<br>");
+  document.getElementById("detail").innerHTML = `
+    <h2>${esc(a.name)}</h2>
+    <dl class="kv">
+      <dt>Words</dt><dd>${fmt(a.words)}</dd>
+      <dt>Restriction terms</dt><dd>${fmt(a.restrictions)} (${fmt1(a.density)} per 1,000 words)</dd>
+      <dt>Parts</dt><dd>${fmt(a.parts)}</dd>
+      <dt>Last change</dt><dd>${a.last_changed ?? "—"}</dd>
+      <dt>Unchanged since 2017</dt><dd>${fmt(a.stale_sections)} of ${fmt(a.sections)} sections (${pct(a.stale_share)})</dd>
+      <dt>Authority notes</dt><dd>${basis || "—"}</dd>
+      <dt>Checksum</dt><dd><code id="sum">${a.checksum ?? "—"}</code>
+        ${a.checksum ? '<button id="copy">Copy</button>' : ""} ${a.changed ? '<span class="badge">changed since last ingest</span>' : ""}</dd>
+      <dt>CFR references</dt><dd>${refs || "—"}</dd>
+    </dl>
+    <h2>Section changes per year</h2>
+    <div class="chart-box"><canvas id="hist"></canvas></div>
+    <p class="note">Recorded section changes since 2017 (eCFR versioner), attributed by current ownership.
+      2017-01-01 is an empirical cutoff: earlier rows are the eCFR baseline load.</p>
+    <h2 style="margin-top: 14px">Statutes behind the most text</h2>
+    <ul class="parts">${a.top_statutes.map(s => `<li>${esc(s.cite)}: ${fmt(s.words)} words in ${fmt(s.parts)} parts
+      (${pct(s.words / a.words)} of this agency's text)</li>`).join("") || "<li>None cited</li>"}</ul>
+    <p class="note">Read from each part's authority note (only the first section after each “U.S.C.”). A citation shows where
+      a rule claims its power, not whether the statute requires the rule. “Unchanged since 2017” means no recorded change
+      since eCFR history began, using the same cutoff as the chart.</p>
+    <h2 style="margin-top: 14px">Largest parts</h2>
+    <ul class="parts">${a.top_parts.map(p => `<li>${p.title} CFR ${esc(p.part)}: ${esc(p.heading)} — ${fmt(p.words)} words${p.authority === "statute" ? "" : ` <span class="badge">${LABEL[p.authority]}</span>`}</li>`).join("") || "<li>None</li>"}</ul>
+    <p class="note">Restriction density counts “shall”, “must”, “may not”, “required”, and “prohibited” (the RegData term list).
+      It is a lexical signal for prioritizing review, not a measure of actual burden.</p>`;
+  const copy = document.getElementById("copy");
+  if (copy) copy.onclick = () => navigator.clipboard.writeText(a.checksum);
+  if (historyChart) historyChart.destroy();
+  const series = [["substantive", "Substantive", "--s1"], ["nonsubstantive", "Non-substantive", "--s2"], ["removed", "Removed", "--s3"]];
+  historyChart = new Chart(document.getElementById("hist"), {
+    type: "bar",
+    data: {
+      labels: h.years.map(y => y.year),
+      datasets: series.map(([k, label, color]) => ({ label, data: h.years.map(y => y[k]), backgroundColor: css(color) })),
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: css("--ink") } } },
+      scales: {
+        x: { stacked: true, ticks: { color: css("--muted") }, grid: { display: false } },
+        y: { stacked: true, ticks: { color: css("--muted") }, grid: { color: css("--line") } },
+      },
+    },
+  });
+}
+
+document.getElementById("q").addEventListener("input", renderTable);
+document.querySelector("thead").addEventListener("click", e => {
+  const k = e.target.dataset.k;
+  if (!k) return;
+  sortDir = k === sortKey ? -sortDir : (k === "name" ? 1 : -1);
+  sortKey = k;
+  renderTable();
+});
+document.getElementById("rows").addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-slug]");
+  if (!tr) return;
+  const slug = tr.dataset.slug;
+  if (e.target.classList.contains("toggle")) {
+    open.has(slug) ? open.delete(slug) : open.add(slug);
+    renderTable();
+  } else select(slug);
+});
+init().catch(err => { document.getElementById("snapshot").textContent = "Failed to load data: " + err; });
+</script>
+</body>
+</html>

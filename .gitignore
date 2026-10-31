@@ -1,0 +1,13 @@
+# Data, build output and local tooling stay out of git; the daily workflow keeps the Parquet store on the `data` branch.
+data/
+site/
+.venv/
+__pycache__/
+.playwright-mcp/
+h3/target/
+h3/.cargo/
+app/tests/expected.json
+*.duckdb
+.DS_Store
+.ruff_cache/
+bench/results/serve_*.log

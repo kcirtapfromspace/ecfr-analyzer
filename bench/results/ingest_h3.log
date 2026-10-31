@@ -1,0 +1,68 @@
+Title 1: 238 baseline / 387 rows; latest baseline Some("2015-12-18")
+Title 2: 1257 baseline / 2952 rows; latest baseline Some("2016-11-28")
+Title 3: 27 baseline / 27 rows; latest baseline Some("2015-03-17")
+Title 4: 223 baseline / 288 rows; latest baseline Some("2012-09-30")
+Title 5: 1726 baseline / 7742 rows; latest baseline Some("2016-12-27")
+Title 6: 428 baseline / 862 rows; latest baseline Some("2016-12-22")
+Title 7: 16867 baseline / 29361 rows; latest baseline Some("2016-12-23")
+Title 8: 946 baseline / 2239 rows; latest baseline Some("2016-12-23")
+Title 9: 2517 baseline / 4393 rows; latest baseline Some("2016-12-20")
+Title 10: 4358 baseline / 11454 rows; latest baseline Some("2016-12-31")
+Title 11: 589 baseline / 985 rows; latest baseline Some("2016-12-23")
+Title 12: 3924 baseline / 16631 rows; latest baseline Some("2016-12-29")
+Title 13: 1669 baseline / 4049 rows; latest baseline Some("2016-12-28")
+Title 14: 5259 baseline / 11604 rows; latest baseline Some("2016-12-30")
+Title 15: 785 baseline / 5609 rows; latest baseline Some("2016-12-28")
+Title 16: 2151 baseline / 3509 rows; latest baseline Some("2016-12-22")
+Title 17: 3436 baseline / 7106 rows; latest baseline Some("2016-12-31")
+Title 18: 0 baseline / 3155 rows; latest baseline None
+Title 19: 2444 baseline / 4813 rows; latest baseline Some("2016-12-27")
+Title 20: 6064 baseline / 8616 rows; latest baseline Some("2016-12-19")
+Title 21: 7971 baseline / 12874 rows; latest baseline Some("2016-12-31")
+Title 22: 3467 baseline / 4797 rows; latest baseline Some("2016-12-31")
+Title 23: 0 baseline / 1891 rows; latest baseline None
+Title 24: 3527 baseline / 7490 rows; latest baseline Some("2016-12-22")
+Title 25: 4490 baseline / 6033 rows; latest baseline Some("2016-12-12")
+Title 26: 6094 baseline / 9189 rows; latest baseline Some("2016-12-30")
+Title 27: 3742 baseline / 5664 rows; latest baseline Some("2016-12-31")
+Title 28: 2892 baseline / 3609 rows; latest baseline Some("2016-12-29")
+Title 29: 3316 baseline / 12046 rows; latest baseline Some("2016-12-01")
+Title 30: 3916 baseline / 9004 rows; latest baseline Some("2016-12-16")
+Title 31: 4636 baseline / 9529 rows; latest baseline Some("2016-12-30")
+Title 32: 5702 baseline / 8919 rows; latest baseline Some("2016-12-22")
+Title 33: 4820 baseline / 8235 rows; latest baseline Some("2016-12-31")
+Title 34: 3753 baseline / 6515 rows; latest baseline Some("2016-12-19")
+Title 36: 3189 baseline / 4147 rows; latest baseline Some("2016-12-21")
+Title 37: 0 baseline / 3321 rows; latest baseline None
+Title 38: 2773 baseline / 5524 rows; latest baseline Some("2016-12-14")
+Title 39: 1104 baseline / 2705 rows; latest baseline Some("2016-12-27")
+Title 40: 23072 baseline / 49524 rows; latest baseline Some("2016-12-31")
+Title 41: 4726 baseline / 9460 rows; latest baseline Some("2016-11-21")
+Title 42: 2079 baseline / 15262 rows; latest baseline Some("2015-12-19")
+Title 43: 5198 baseline / 8387 rows; latest baseline Some("2016-12-20")
+Title 44: 0 baseline / 1279 rows; latest baseline None
+Title 45: 5687 baseline / 10703 rows; latest baseline Some("2016-12-30")
+Title 46: 8626 baseline / 12384 rows; latest baseline Some("2016-12-22")
+Title 47: 4228 baseline / 14155 rows; latest baseline Some("2016-12-15")
+Title 48: 8195 baseline / 23480 rows; latest baseline Some("2016-12-22")
+Title 49: 6745 baseline / 16428 rows; latest baseline Some("2016-12-29")
+Title 50: 1109 baseline / 10434 rows; latest baseline Some("2016-12-27")
+Ingested [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50] in 24.269s; 49491968 bytes
+       24.28 real        23.61 user         0.55 sys
+           575766528  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               74417  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 209  voluntary context switches
+                5870  involuntary context switches
+        357372349765  instructions retired
+         76891991885  cycles elapsed
+           533906320  peak memory footprint

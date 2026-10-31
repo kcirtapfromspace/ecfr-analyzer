@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eCFR Analyzer</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="static/style.css?v={{ version }}">
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" integrity="sha384-9nhczxUqK87bcKHh20fSQcTGD4qq5GhayNYSYWqwBkINBhOfQLg/P5HG5lF1urn4" crossorigin="anonymous"></script>
+<script src="static/app.js?v={{ version }}" defer></script>
+</head>
+<body>
+<header>
+  <h1>eCFR Analyzer</h1>
+  <div class="sub">
+    Last refresh {{ meta.ingested_at }} · eCFR data as of {{ meta.ecfr_date }}
+    {% if meta.previous_ecfr_date %}· since {{ meta.previous_ecfr_date }}: {{ meta.parts_changed.modified }} parts modified,
+      {{ meta.parts_changed.added }} added, {{ meta.parts_changed.removed }} removed{% endif %}
+    · {{ meta.titles_processed | length }} of {{ meta.titles | length }} titles reprocessed ({{ meta.mode }})
+    · <a href="api/openapi.json">JSON API</a>
+  </div>
+</header>
+<section class="cards">
+  {% for value, label in [
+    (meta.words | num, "Words in regulations"),
+    (meta.parts | num, "Parts"),
+    (meta.change_rows | num, "Section changes since 2017"),
+    ((meta.stale_sections / meta.sections) | pct, "Sections unchanged since 2017"),
+    ((meta.authority_words.statute / meta.words) | pct, "Words citing a specific statute"),
+    (meta.eligible | num, "Parts ranked for review"),
+  ] %}
+  <div class="card"><b>{{ value }}</b><span>{{ label }}</span></div>
+  {% endfor %}
+</section>
+<main>
+  <div class="col">
+    <div class="panel">
+      <h2>Review candidates</h2>
+      <select name="agency" aria-label="Filter by agency">
+        <option value="">All agencies</option>
+        {% for a in filters %}<option value="{{ a.slug }}">{{ a.name }} ({{ a.flagged_parts }} flagged)</option>{% endfor %}
+      </select>
+      <div id="candidates" class="table-wrap">{% include "candidates.html" %}</div>
+      <p class="note">Parts with 1,000+ words, ranked by the mean z-score of the six columns (hover a cell for its raw
+        value). The top 10% are candidates for review, not findings of over-regulation.</p>
+    </div>
+    <div class="panel">
+      <h2>What changed</h2>
+      <div class="table-wrap">
+        <table class="parts">
+          <thead><tr><th>eCFR date</th><th>Part</th><th>Change</th><th>Words before</th><th>Words after</th></tr></thead>
+          <tbody>
+          {% for c in changes %}
+          <tr>
+            <td>{{ c.ecfr_date }}</td>
+            <td><a href="https://www.ecfr.gov/current/title-{{ c.title }}/part-{{ c.part }}" target="_blank" rel="noopener">{{ c.title }} CFR {{ c.part }}</a>
+              <span class="sub">{{ c.heading }}</span></td>
+            <td>{{ c.change }}</td>
+            <td data-v="{{ c.words_before if c.words_before is not none }}">{{ c.words_before | num }}</td>
+            <td data-v="{{ c.words_after if c.words_after is not none }}">{{ c.words_after | num }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5">No changes recorded yet: the change log starts with the first daily refresh.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Parts whose text changed between daily refreshes (compared by text hash).</p>
+    </div>
+    <div class="panel">
+      <h2>Size vs. restriction density</h2>
+      <div class="chart-box tall"><canvas data-chart='{{ {"kind": "scatter", "data": scatter} | tojson }}'></canvas></div>
+      <p class="note">Top-level agencies; dashed lines are medians. Click a point for details.</p>
+    </div>
+    <div class="panel">
+      <h2>Agencies</h2>
+      <input type="search" id="q" placeholder="Filter by name or abbreviation (includes sub-agencies)" aria-label="Filter agencies">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Agency</th><th>Words</th><th>Restrictions / 1k</th><th>Unchanged since 2017</th><th>Flagged parts</th></tr></thead>
+          <tbody id="rows">{% include "rows.html" %}</tbody>
+        </table>
+      </div>
+      <p class="note">Parents include their sub-agencies' parts once; shared parts make totals non-additive.</p>
+    </div>
+    <div class="panel" id="explore" data-titles="{{ meta.titles | join(',') }}">
+      <h2>Explore the data with SQL (DuckDB in your browser)</h2>
+      <textarea id="sql" rows="4" aria-label="SQL query">SELECT title, part, heading, words, round(x_grade, 1) AS grade, paperwork, rank
+FROM 'parts.parquet' WHERE rank IS NOT NULL ORDER BY rank LIMIT 20</textarea>
+      <button id="run">Run query</button>
+      <span id="status" class="sub">Files: parts, agencies, agency_parts, versions, agency_history, part_changes
+        (.parquet); view parts_text. The first run loads DuckDB-WASM (~30 MB).</span>
+      <div id="result" class="table-wrap"></div>
+    </div>
+  </div>
+  <div class="panel" id="detail"><p class="sub">Select an agency to see its details.</p></div>
+</main>
+</body>
+</html>

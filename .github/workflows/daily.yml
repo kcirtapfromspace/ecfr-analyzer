@@ -1,0 +1,52 @@
+# Daily eCFR refresh: incremental ingest -> static export -> data branch + GitHub Pages.
+# One-time setup: Settings > Pages > Source = "GitHub Actions".
+name: Daily eCFR refresh
+on:
+  schedule:
+    - cron: "30 10 * * *" # daily, after eCFR's overnight update (06:30 US Eastern)
+    - cron: "30 11 * * 0" # Sundays: full rebuild, the safety net for anything the daily delta could miss
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Reprocess every title
+        type: boolean
+        default: false
+permissions:
+  contents: write # push the data branch
+  pages: write
+  id-token: write
+concurrency: {group: ecfr-refresh, cancel-in-progress: false}
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: {name: github-pages, url: "${{ steps.deploy.outputs.page_url }}"}
+    env:
+      REPO_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore the Parquet store from the data branch (absent only on the first run)
+        # ls-remote exits 2 only when the branch is absent; any other failure must not start a fresh history.
+        run: |
+          git ls-remote --exit-code --heads "$REPO_URL" data > /dev/null || { s=$?; [ $s -eq 2 ] && exit 0; exit $s; }
+          git clone --depth 1 --branch data "$REPO_URL" data/app
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12", cache: pip, cache-dependency-path: app/requirements.txt}
+      - run: pip install -r app/requirements.txt
+      - name: Ingest (only changed titles, unless Sunday or requested)
+        run: python app/ecfr.py ingest ${{ (github.event.schedule == '30 11 * * 0' || inputs.full) && '--full' || '' }}
+      - run: python app/ecfr.py export --out site
+      - name: Save the store to the data branch (one force-pushed commit; history lives in agency_history/part_changes.parquet)
+        working-directory: data/app
+        env:
+          GIT_DIR: ${{ runner.temp }}/data.git # a fresh repository each run, so the branch never grows
+          GIT_WORK_TREE: .
+        run: |
+          git init -q -b data
+          git add -A
+          git -c user.name=ecfr-refresh -c user.email=ecfr-refresh@users.noreply.github.com commit -qm "eCFR $(jq -r .ecfr_date meta.json)"
+          git push -qf "$REPO_URL" data
+      - uses: actions/upload-pages-artifact@v3
+        with: {path: site}
+      - id: deploy
+        uses: actions/deploy-pages@v4
