@@ -18,5 +18,5 @@
   {% endfor %}
   </tbody>
 </table>
-<p class="note">Score: the mean of six signals in standard deviations (SD). The top {{ candidates.flagged | num }} of
-  {{ candidates.eligible | num }} ranked parts (10%) get a flag for review. A flag is not a finding.</p>
+<p class="note">Score: the mean of six signals, in standard deviations (SD). Across the CFR, the top {{ candidates.flagged | num }}
+  of {{ candidates.eligible | num }} ranked parts (10%) get a flag for review; this list shows {{ candidates.candidates | length }}. A flag is not a finding.</p>

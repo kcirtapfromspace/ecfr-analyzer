@@ -23,7 +23,7 @@
     <h2>Agencies</h2>
     <div class="table-wrap">
       <table id="agencies">
-        <thead><tr><th>Agency</th><th>Words</th><th>Restriction density</th><th>Unchanged since 2017</th><th>Flagged parts</th></tr></thead>
+        <thead><tr><th>Agency</th><th>Words</th><th title="Restriction terms per 1,000 words">Restriction density</th><th>Unchanged since 2017</th><th>Flagged parts</th></tr></thead>
         <tbody>
         {% for a in agencies %}
         <tr class="{{ 'child' if a.parent_slug }}"
