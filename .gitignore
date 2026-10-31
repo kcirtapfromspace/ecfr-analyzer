@@ -4,18 +4,10 @@ site/
 .venv/
 __pycache__/
 .playwright-mcp/
-h3/target/
-h3/.cargo/
 app/tests/expected.json
 *.duckdb
 .DS_Store
 .ruff_cache/
-bench/results/serve_*.log
-# Frontend evaluation (frontends/): dependencies, build output and test artifacts
+# Node packages and Playwright output for the e2e tests
 node_modules/
-frontends/*/build/
-frontends/*/dist/
-frontends/*/.svelte-kit/
-frontends/observable/src/.observablehq/
 test-results/
-frontends/measure*.json
