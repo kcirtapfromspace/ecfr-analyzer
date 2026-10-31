@@ -1,74 +1,79 @@
 # eCFR Analyzer
 
-A small site for analyzing the Electronic Code of Federal Regulations (eCFR) to support review of potential deregulation. It shows, per agency:
-- word count
-- historical changes
-- a checksum for change detection
-- restriction density, reading grade, staleness, a sentence-type mix and legal authority
+This website helps you find federal regulations to examine for deregulation. It uses the full Electronic Code of Federal Regulations (eCFR) and updates each day.
 
-It also ranks parts of the CFR as **review candidates** (not findings of over-regulation).
+- **Live site:** https://kcirtapfromspace.github.io/ecfr-analyzer/
+- **JSON API:** [api/openapi.json](https://kcirtapfromspace.github.io/ecfr-analyzer/api/openapi.json)
 
-**Live site:** https://kcirtapfromspace.github.io/ecfr-analyzer/ (refreshed daily by GitHub Actions) · **Static JSON API:** [`api/openapi.json`](https://kcirtapfromspace.github.io/ecfr-analyzer/api/openapi.json)
+## What it shows
 
-## How it works
-- `ecfr ingest`: downloads the eCFR (full XML per title, version history, agencies) into a Parquet store. After the first run it is **incremental**: only titles whose catalog dates moved, or whose stored amendments took effect, are re-downloaded, and only parts whose prose changed are re-analyzed. `--full` reprocesses everything. A daily snapshot per agency and a log of changed parts are kept.
-- `ecfr export`: writes a static site. It contains htmx pages, a JSON API mirroring the live routes, and the Parquet files, with text split per title.
-- `ecfr serve`: a FastAPI JSON API (`/api/...`, docs at `/docs`) serving the exported site.
-- In the browser, every table sorts, search covers sub-agencies, and DuckDB-WASM runs SQL over the published Parquet files.
-- `.github/workflows/daily.yml`: runs ingest + export daily (full on Sundays), keeps the store on the `data` branch as one force-pushed commit, and deploys GitHub Pages.
-- `.github/workflows/ci.yml`: on every push, lint, the oracle self-tests, the 1,200-line budget, and end-to-end browser tests of the exported site.
+Each agency value includes its sub-agencies and counts each part one time.
 
-**Size:** the app is 1,176 code lines (`tokei app --exclude tests`), and CI fails above 1,200 (`app/tests/loc_gate.py`). Why the UI is htmx, and the other decisions, are in [DECISIONS.md](DECISIONS.md).
-
-## Run locally
-```sh
-uv sync                # Python 3.12+ and the pinned dependencies from uv.lock
-uv run ecfr ingest     # first run: full build, ~4 min plus download
-uv run ecfr export     # writes site/
-uv run ecfr serve      # http://127.0.0.1:8310 (API docs at /docs)
-```
-
-Checks, as CI runs them:
-```sh
-uv run ruff check app && uv run ruff format --check app/ecfr
-uv run python app/tests/loc_gate.py          # needs tokei 15.0.0 (cargo install tokei@15.0.0 --locked)
-npm ci && npx playwright install chromium    # once
-npm run e2e                                  # tests the exported site/ under /ecfr-analyzer/, as on Pages
-```
-
-## Metrics (exact definitions in [CONTRACT.md](CONTRACT.md))
 | Metric | Definition |
 |---|---|
-| Word count | Unicode letter/digit runs in each part's text, summed per agency (sub-agencies included, each part once) |
-| Historical changes | Section versions since 2017 from the eCFR versioner, plus this site's own daily snapshots and part-change log |
-| Checksum | SHA-256 over each agency's `title|part|text-hash` lines; flags agencies whose text changed |
-| Restriction density | "shall / must / may not / required / prohibited" per 1,000 words (RegData term list) |
-| Readability | Approximate Flesch–Kincaid grade, words per sentence, long-sentence and passive share (tables excluded) |
+| Word count | The words in the agency's parts of the CFR |
+| Historical changes | Section changes per year from 2017 (eCFR versioner), plus a daily snapshot from this site |
+| Checksum | A SHA-256 hash of the agency's text. A new value shows that the text changed. |
+| Restriction density | Restriction terms ("shall", "must", "may not", "required", "prohibited") per 1,000 words |
+| Reading grade | Approximate Flesch–Kincaid grade, words per sentence, share of long and passive sentences |
 | Sentence types | Rule-based classifier: definition, prohibition, paperwork, obligation, permission, other |
-| Staleness | Share of current sections with no recorded change since 2017 |
-| Authority | What each part's authority note cites; the statutes behind the most text |
-| Review candidates | Mean z-score of size, density, grade, directive share, paperwork share, staleness; top 10% flagged |
+| Staleness | The share of sections with no change from 2017 |
+| Authority | The statutes that the parts cite, and the quantity of text for each statute |
 
-## Repository map
-- `app/ecfr/`: the submission, as a package of composable modules, each usable on its own:
+The site also gives each part of the CFR a **review candidate** score. The score is the mean z-score of size, restriction density, reading grade, directive share, paperwork share and staleness. The top 10% get a flag for review. A flag is not a conclusion about the part.
 
-  | Module | Responsibility |
-  |---|---|
-  | `source.py` | eCFR API client and raw-file cache |
-  | `text.py` | Text metrics on strings: words, restriction terms, authority tags, sentences, readability |
-  | `parse.py` | Stream a title's XML into one row per part |
-  | `build.py` | DuckDB build of the Parquet store: incremental ingest, analytics, ranking, history |
-  | `model.py` | Definitions shared by the build and the read layer |
-  | `queries.py` | Read queries shared by the API and the export |
-  | `site.py` | Static site export; owns `templates/` and `static/` |
-  | `api.py` | FastAPI app factory and server |
-  | `cli.py` | `ecfr` command |
+## How it works
 
-  `app/tests/oracle.py` is an independent verifier written by Codex from the contract alone; `app/tests/e2e/` tests the exported site in a browser; `app/tests/loc_gate.py` enforces the line budget.
-- `DECISIONS.md` (what was chosen, what lost, who agreed, what would reopen it), `CONTRACT.md` (precise spec), `facts.md` (verified eCFR API behavior), `RESULTS.md` (measurements, rounds 1–7), `AGREED_PLAN.md`, `PAGES_PLAN.md`.
-- `frontends/`: the round-6 frontend evaluation (htmx, raw JS, SvelteKit, Observable Framework, VanJS, Preact on one shared slice and e2e test). The complete raw-JS port that was measured and set aside is on the `raw-js-port` branch.
-- `h1/`, `h2/`, `h3/`, `web/`, `bench/`: measured experiments (Python+SQLite, DuckDB+Parquet, Rust) that led to `app/`.
-- `planning/`: the independent Claude and Codex plans and critiques.
+- `ecfr ingest` downloads the eCFR XML, the version history and the agencies into Parquet files. After the first run, it processes only the titles that changed.
+- `ecfr export` writes the static site: htmx pages, the JSON API as files, and the Parquet data.
+- `ecfr serve` gives the same API from a FastAPI server (documentation at `/docs`).
+- In the browser, you can sort tables, search agencies and query the Parquet files with SQL (DuckDB-WASM).
+- Each day, GitHub Actions updates the data and publishes the site to GitHub Pages. The data stays on the `data` branch.
+
+## Run it
+
+```sh
+uv sync              # Python 3.12 and the pinned packages
+uv run ecfr ingest   # first run: a full build, approximately 4 minutes plus the download
+uv run ecfr export   # writes site/
+uv run ecfr serve    # http://127.0.0.1:8310
+```
+
+CI runs these checks for each push:
+
+```sh
+uv run ruff check app
+uv run python app/tests/loc_gate.py        # needs tokei 15.0.0
+npm ci && npx playwright install chromium  # one time
+npm run e2e                                # browser tests of site/ under /ecfr-analyzer/
+```
+
+## Decisions
+
+- **DuckDB and Parquet.** We measured three backends: Python with SQLite, Python with DuckDB and Parquet, and Rust. The Rust ingest was 2.4 times faster, but this data does not need that speed. With Parquet, the server and the browser query the same files.
+- **Static site.** GitHub Pages hosts the pages and the API as files, so there is no server to operate.
+- **Rule-based sentence types.** Jev is a closed, hosted API that we cannot embed. Rules are easy to explain.
+- **htmx.** SvelteKit was the first choice for its type checks and tests. But with SvelteKit, the app needs approximately 1,400 lines (an estimate). With a plain JavaScript port, it needs 1,228 lines (branch `raw-js-port`). With htmx, the app stays below 1,200 lines.
+- **Size.** The app has 1,176 lines of code (`tokei app --exclude tests`). CI fails above 1,200.
+- **Open item.** The paperwork share controls the top of the list. A ±3 limit on each z-score can correct this. This is not decided.
+
+## How we checked the results
+
+- Codex wrote an independent oracle from the specification. It calculated all 9,659 parts again and found 0 differences from the API.
+- The static API is the same as the live API on all 1,268 routes.
+- An incremental build gives the same result as a full build (float differences below 5e-11).
+- Browser tests in CI sort, search and open agency details. They get their expected values from the site's JSON.
 
 ## AI use
-Built with Claude Code (Claude) and Codex working as two agents. They wrote independent plans and critiqued each other's. Claude wrote the Python app; Codex wrote the Rust experiment and the independent oracle. Every round was verified by measurement: parity across implementations, oracle checks, incremental-vs-full equality, and browser tests. Disagreements and the user's calls are recorded in `DECISIONS.md`. `RESULTS.md` records who did what and every bug found.
+
+- Claude (Claude Code) and Codex worked as two agents. Each agent wrote a plan and examined the plan of the other agent.
+- Claude wrote the app. Codex wrote a Rust version for comparison, the oracle, and a review of each step.
+- We measured each claim before we accepted it. The author made the final decisions.
+
+## Limits
+
+- The reading grade and the sentence splits are approximate.
+- Version history before 2017 is the eCFR baseline load. Thus, the site counts changes from 2017-01-01.
+- The site gives each change to the agency that owns the part now.
+
+The tag [v0.2.0](https://github.com/kcirtapfromspace/ecfr-analyzer/tree/v0.2.0) has the earlier experiments, measurements and full decision record.

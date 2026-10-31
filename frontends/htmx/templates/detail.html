@@ -1,6 +1,0 @@
-<h2 data-testid="detail-name">{{ a.name }}</h2>
-<dl>
-  <dt>Words</dt><dd data-testid="detail-words">{{ a.words | num }}</dd>
-  <dt>Restrictions / 1k</dt><dd data-testid="detail-density">{{ a.density | f1 }}</dd>
-</dl>
-<div class="chart"><canvas data-testid="history" data-chart='{{ {"kind": "history", "data": years} | tojson }}'></canvas></div>

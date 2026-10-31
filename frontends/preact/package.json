@@ -1,7 +1,0 @@
-{
-  "name": "ecfr-preact",
-  "private": true,
-  "type": "module",
-  "scripts": { "check": "tsc -p .", "test": "node --test test/" },
-  "devDependencies": { "htm": "3.1.1", "preact": "11.0.1" }
-}

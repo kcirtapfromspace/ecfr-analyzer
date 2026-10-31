@@ -10,7 +10,7 @@ PUBLAW = re.compile(r"Pub\.\s*L\.|Public Law")
 EXECUTIVE = re.compile(r"E\.\s*O\.|Executive Order|Proclamation|Reorganization Plan")
 TAGS = ("statute", "housekeeping", "executive", "other", "none")
 
-# Sentence structure (CONTRACT.md, Round 3). Approximate by design: legal text defeats simple splitters.
+# Sentence structure (CONTRACT.md at tag v0.2.0). Approximate by design: legal text defeats simple splitters.
 BOUNDARY = re.compile(r'(?<=[.?!])\s+(?=[A-Z(§"“])')
 ABBREVIATION = re.compile(
     r"(?:^|[\s(])(?:U\.S\.C|U\.S|e\.g|i\.e|etc|et seq|No|Nos|Sec|Secs|Pub|L|Stat|Fed|Reg|Inc|Co|Corp"
@@ -54,7 +54,7 @@ def normalize(text):
 
 
 def authority(text):
-    """Tag what a part's authority note cites (see CONTRACT.md). Descriptive, not a legal conclusion."""
+    """Tag what a part's authority note cites (CONTRACT.md at tag v0.2.0). Descriptive, not a legal conclusion."""
     cites = sorted({f"{t} U.S.C. {s}" for t, s in USC.findall(text)})
     if not text:
         return "none", cites
@@ -76,7 +76,7 @@ def sentences(text):
 
 
 def classify(sentence):
-    """Typed decision per sentence; the first matching rule wins (CONTRACT.md)."""
+    """Typed decision per sentence; the first matching rule wins (CONTRACT.md at tag v0.2.0)."""
     s = sentence.lower()
     if DEFINITION.search(s):
         return "definition"

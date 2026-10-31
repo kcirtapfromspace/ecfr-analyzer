@@ -1,7 +1,0 @@
-{
-  "name": "ecfr-van",
-  "private": true,
-  "type": "module",
-  "scripts": { "check": "tsc -p .", "test": "node --test test/" },
-  "devDependencies": { "vanjs-core": "1.6.1" }
-}

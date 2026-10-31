@@ -1,6 +1,6 @@
 """Fail when the app's code exceeds the 1,200-line budget.
 
-Counted exactly as every report in RESULTS.md counts it: `tokei app --exclude tests` (tokei 15.0.0),
+Counted with `tokei app --exclude tests` (tokei 15.0.0),
 code lines only, so blank lines, comments and the tests themselves don't count.
 """
 

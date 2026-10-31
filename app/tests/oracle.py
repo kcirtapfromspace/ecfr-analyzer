@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent CONTRACT.md Round 3 oracle; standard library and raw cache only.
+"""Independent oracle for the metric contract (CONTRACT.md at tag v0.2.0); standard library and raw cache only.
 
 Run from the repository root with uv run app/tests/oracle.py
 --dump expected.json and/or --base http://127.0.0.1:PORT. No application,
