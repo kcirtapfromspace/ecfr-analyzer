@@ -16,6 +16,9 @@ It also ranks parts of the CFR as **review candidates** (not findings of over-re
 - `ecfr serve`: a FastAPI JSON API (`/api/...`, docs at `/docs`) serving the exported site.
 - In the browser, every table sorts, search covers sub-agencies, and DuckDB-WASM runs SQL over the published Parquet files.
 - `.github/workflows/daily.yml`: runs ingest + export daily (full on Sundays), keeps the store on the `data` branch as one force-pushed commit, and deploys GitHub Pages.
+- `.github/workflows/ci.yml`: on every push, lint, the oracle self-tests, the 1,200-line budget, and end-to-end browser tests of the exported site.
+
+**Size:** the app is 1,176 code lines (`tokei app --exclude tests`), and CI fails above 1,200 (`app/tests/loc_gate.py`). Why the UI is htmx, and the other decisions, are in [DECISIONS.md](DECISIONS.md).
 
 ## Run locally
 ```sh
@@ -23,6 +26,14 @@ uv sync                # Python 3.12+ and the pinned dependencies from uv.lock
 uv run ecfr ingest     # first run: full build, ~4 min plus download
 uv run ecfr export     # writes site/
 uv run ecfr serve      # http://127.0.0.1:8310 (API docs at /docs)
+```
+
+Checks, as CI runs them:
+```sh
+uv run ruff check app && uv run ruff format --check app/ecfr
+uv run python app/tests/loc_gate.py          # needs tokei 15.0.0 (cargo install tokei@15.0.0 --locked)
+npm ci && npx playwright install chromium    # once
+npm run e2e                                  # tests the exported site/ under /ecfr-analyzer/, as on Pages
 ```
 
 ## Metrics (exact definitions in [CONTRACT.md](CONTRACT.md))
@@ -53,10 +64,11 @@ uv run ecfr serve      # http://127.0.0.1:8310 (API docs at /docs)
   | `api.py` | FastAPI app factory and server |
   | `cli.py` | `ecfr` command |
 
-  `app/tests/oracle.py` is an independent verifier written by Codex from the contract alone.
-- `CONTRACT.md` (precise spec), `facts.md` (verified eCFR API behavior), `RESULTS.md` (measurements and decisions, rounds 1–4), `AGREED_PLAN.md`, `PAGES_PLAN.md`.
+  `app/tests/oracle.py` is an independent verifier written by Codex from the contract alone; `app/tests/e2e/` tests the exported site in a browser; `app/tests/loc_gate.py` enforces the line budget.
+- `DECISIONS.md` (what was chosen, what lost, who agreed, what would reopen it), `CONTRACT.md` (precise spec), `facts.md` (verified eCFR API behavior), `RESULTS.md` (measurements, rounds 1–7), `AGREED_PLAN.md`, `PAGES_PLAN.md`.
+- `frontends/`: the round-6 frontend evaluation (htmx, raw JS, SvelteKit, Observable Framework, VanJS, Preact on one shared slice and e2e test). The complete raw-JS port that was measured and set aside is on the `raw-js-port` branch.
 - `h1/`, `h2/`, `h3/`, `web/`, `bench/`: measured experiments (Python+SQLite, DuckDB+Parquet, Rust) that led to `app/`.
 - `planning/`: the independent Claude and Codex plans and critiques.
 
 ## AI use
-Built with Claude Code (Claude) and Codex working as two agents. They wrote independent plans and critiqued each other's. Claude wrote the Python app; Codex wrote the Rust experiment and the independent oracle. Every round was verified by measurement: parity across implementations, oracle checks, incremental-vs-full equality, and browser tests. `RESULTS.md` records who did what and every bug found.
+Built with Claude Code (Claude) and Codex working as two agents. They wrote independent plans and critiqued each other's. Claude wrote the Python app; Codex wrote the Rust experiment and the independent oracle. Every round was verified by measurement: parity across implementations, oracle checks, incremental-vs-full equality, and browser tests. Disagreements and the user's calls are recorded in `DECISIONS.md`. `RESULTS.md` records who did what and every bug found.

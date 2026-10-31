@@ -97,6 +97,9 @@ RANK = """CREATE TABLE ranked_parts AS
     SELECT title, part, score, {inputs}, {zs},
            row_number() OVER (ORDER BY score DESC, title, ord) AS rank FROM ranked)"""
 PARQUET = "(FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 1000)"
+BY_TAG = ", ".join(
+    f"'{t}', coalesce(sum(p.words) FILTER (WHERE p.authority = '{t}'), 0)" for t in TAGS
+)
 HISTORY = """
 CREATE TABLE snapshot AS
   SELECT '{date}' AS ecfr_date, slug, words, restrictions, parts, checksum, sections, stale_sections,
@@ -143,16 +146,13 @@ def analytics_sql(date):
         f"coalesce((x_{c} - avg(x_{c}) OVER ()) / nullif(stddev_pop(x_{c}) OVER (), 0), 0) AS z_{c}"
         for c in INPUTS
     ]
-    by_tag = ", ".join(
-        f"'{t}', coalesce(sum(p.words) FILTER (WHERE p.authority = '{t}'), 0)" for t in TAGS
-    )
     statements = ANALYTICS.format(
         date=date,
         cutoff=CUTOFF,
         z_columns=", ".join(z),
         z_sum=" + ".join(f"z_{c}" for c in INPUTS),
         zero=json.dumps(dict.fromkeys(TAGS, 0)),
-        by_tag=by_tag,
+        by_tag=BY_TAG,
         summed_columns=", ".join(f"coalesce(m.{c}, 0) AS {c}" for c in SUMMED),
         summed_sums=", ".join(f"CAST(sum(p.{c}) AS BIGINT) AS {c}" for c in SUMMED),
     ).split(";")
@@ -182,9 +182,8 @@ def ingest(store, date, titles, full):
     db = duckdb.connect(f"{new}/build.duckdb")
     db.execute("SET memory_limit = '1GB'")
     db.execute(SCHEMA)
-    if (
-        prev
-    ):  # yesterday's parts: reused when incremental, and always the baseline for the change log
+    # Yesterday's parts: reused when incremental, and always the baseline for the change log.
+    if prev:
         columns = NAMES if incremental else "title, part, heading, words, hash"
         db.execute(
             f"CREATE OR REPLACE TABLE prev_part AS SELECT {columns} FROM '{store}/parts.parquet'"
@@ -271,9 +270,8 @@ def ingest(store, date, titles, full):
         ("agency_history", "snapshot", True),
         ("part_changes", "part_change", compare),
     ):
-        old = (
-            f"{store}/{name}.parquet"  # history is append-only; a same-day rerun replaces snapshots
-        )
+        # History is append-only; a same-day rerun replaces that day's snapshots.
+        old = f"{store}/{name}.parquet"
         source = f"SELECT * FROM {table}"
         if prev and os.path.exists(old):
             source += f" UNION ALL SELECT * FROM '{old}'" + (
@@ -297,9 +295,6 @@ def ingest(store, date, titles, full):
 
 def build_meta(db, date, titles):
     q = lambda sql: db.sql(sql).fetchone()[0]  # noqa: E731
-    by_tag = ", ".join(
-        f"'{t}', coalesce(sum(p.words) FILTER (WHERE p.authority = '{t}'), 0)" for t in TAGS
-    )
     return {
         "ecfr_date": date,
         "ingested_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -318,7 +313,7 @@ def build_meta(db, date, titles):
         "sections": q("SELECT count(*) FROM section"),
         "stale_sections": int(q("SELECT coalesce(sum(CAST(stale AS INT)), 0) FROM section")),
         "authority_words": json.loads(
-            q(f"SELECT CAST(json_object({by_tag}) AS VARCHAR) FROM part p")
+            q(f"SELECT CAST(json_object({BY_TAG}) AS VARCHAR) FROM part p")
         ),
         "eligible": q("SELECT count(*) FROM ranked_parts"),
     }

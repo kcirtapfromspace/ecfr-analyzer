@@ -174,3 +174,44 @@ The single `app/ecfr.py` became the package `app/ecfr/`. Code moved verbatim by 
 - Codex reviewed it and agreed, with no required changes. Its one suggestion, moving shared constants out of `build.py` so the read layer doesn't load ingest code, was applied (`model.py`) and re-verified.
 
 **Size:** app 1,183 code lines (was 1,151; imports and module docstrings account for the difference) + workflow 48 + `pyproject.toml` 15 = 1,246. The app code alone is under 1,200; counting CI and packaging config, it is 46 over. Getting the total back under would mean dropping a requested feature (e.g. the scatter plot, ~30 lines, or the SQL explorer, ~45 lines), which is the user's call.
+
+# Round 6: frontend evaluation (htmx, raw JS, SvelteKit, Observable Framework, VanJS, Preact)
+
+Each candidate implemented the same slice (agency table with sort and search, scatter plot, detail with history chart) from the same fixture JSON and passed one shared Playwright test under the `/ecfr-analyzer/` subpath. Full tables are in [frontends/RESULTS.md](frontends/RESULTS.md); the code is in `frontends/`.
+
+- **SvelteKit (lean)** won on what was asked for: tests, type checks (template-level, plus a11y) and the lightest first view (114.8 KB gzip). It was the user's first choice and Codex's independent pick. Its cost is about 1.4× the lines plus a Node toolchain.
+- **Raw JS + JSDoc** had htmx's line count, no build step, and `tsc --checkJs` caught the planted field typo. VanJS and Preact were no better under the cap.
+- **Observable Framework** was 3.4× heavier with no type checks in pages; **htmx** was weakest on tests and types.
+
+# Round 7: Checkpoint 2: the raw-JS port measured; htmx kept
+
+The agreed rule (Codex's condition) was to build the complete port, enforce 1,200 lines in CI, and keep htmx if it can't fit. The decision record is [DECISIONS.md](DECISIONS.md) (D7).
+
+**The port** (branch `raw-js-port`) replaced Jinja/htmx with ES modules, using:
+- an escaping `html` tag
+- one sortable-table component
+- hash routing to agency details
+- a trimmed `api/agency-table.json`, about a fifth of `agencies.json`
+- `ui/candidates/*.json` files of 25 rows
+
+It passed `tsc --checkJs`, the shared slice e2e and a browser check (filter, sort, detail charts, sub-agency links, back button, slugs with `'`, `(`, `)` and `,`, 404s, DuckDB explore).
+
+| | htmx (shipped) | raw JS port |
+|---|---|---|
+| App code lines (tokei) | **1,176** | 1,228 (28 over) |
+| First view, gzip (same store) | 126.5 KB / 5 requests | 102.5 KB / 13 requests |
+| Agency detail, gzip | 3.1 KB | 6.3 KB |
+
+- **The user chose htmx**, which stays under 1,200, over shipping the port at 1,228 or cutting a feature.
+- **Kept from the attempt:**
+  - A CI workflow: lint, oracle self-tests, the line gate, and an e2e test of the shipped UI against the real store. The e2e takes its expected values from the exported JSON, so daily data changes don't break it, and it fails when header sorting is broken (checked by breaking it).
+  - Duplicated SQL removed from `build.py` (the generated SQL is byte-identical to v0.1.0's).
+  - `ruff` settings pinned in `pyproject.toml`.
+- **Measurement pitfalls found:**
+  - tokei doesn't parse regex literals, so a quote inside one makes it count the following comments as code. In the port this was 32 lines; in the shipped `app.js` it is 3, and we report tokei's higher number.
+  - ruff 0.17 enables about 400 lint rules by default, and its default line length (88) reflows the code. Both are now pinned.
+- **Verification on the release:**
+  - Codex's oracle: 0 mismatches against the live API (agencies, global candidates, 297 agency candidate routes).
+  - Static files equal the live API on 1,268/1,268 routes.
+  - The e2e passes.
+- **Codex review:** DISAGREE at first, with one required change. Turning `/api/agencies` into a one-line lambda had changed its OpenAPI `operationId`, which would rename generated client methods. `api.py` was restored to v0.1.0's named handler, and Codex then agreed with no remaining changes.

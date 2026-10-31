@@ -1,0 +1,44 @@
+# Checks on every push and pull request: lint, unit self-tests, the 1,200-line budget, and end-to-end UI tests.
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with: {python-version: "3.12", enable-cache: true, cache-dependency-glob: uv.lock}
+      - run: uv run --frozen ruff check app
+      - run: uv run --frozen ruff format --check app/ecfr
+      - name: Oracle self-tests (the independent checker of the metrics)
+        run: |
+          uv run --frozen python -I app/tests/oracle_selftest.py
+          uv run --frozen python -I app/tests/oracle_comparison_selftest.py
+      - name: Cache tokei (no release binaries for 15.0.0, so it is built once)
+        uses: actions/cache@v4
+        with: {path: ~/.cargo/bin/tokei, key: tokei-15.0.0-${{ runner.os }}}
+      - run: command -v tokei || cargo install tokei@15.0.0 --locked
+      - name: Line budget (tokei app --exclude tests, at most 1,200 code lines)
+        run: uv run --frozen python app/tests/loc_gate.py
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - name: Restore the Parquet store from the data branch
+        run: git clone --depth 1 --branch data "https://github.com/${{ github.repository }}.git" data/app
+      - uses: astral-sh/setup-uv@v6
+        with: {python-version: "3.12", enable-cache: true, cache-dependency-glob: uv.lock}
+      - run: uv run --frozen --no-dev ecfr export --out site
+      - uses: actions/setup-node@v4
+        with: {node-version: 22, cache: npm}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e

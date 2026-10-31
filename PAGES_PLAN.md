@@ -1,4 +1,4 @@
-# Plan: publish `app/` as a static site on GitHub Pages: BUILT in round 4 (see RESULTS.md); repo/push pending
+# Plan: publish `app/` as a static site on GitHub Pages: BUILT in round 4 and deployed (see RESULTS.md, Deployment)
 
 Verified 2026-10-30: GitHub Pages answers Range requests with HTTP 206 and sends `Access-Control-Allow-Origin: *`; published sites max 1 GB; deploys time out at 10 minutes.
 

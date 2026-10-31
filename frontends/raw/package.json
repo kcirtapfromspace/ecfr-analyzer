@@ -1,0 +1,9 @@
+{
+  "name": "ecfr-raw",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc -p .",
+    "test": "node --test test/"
+  }
+}

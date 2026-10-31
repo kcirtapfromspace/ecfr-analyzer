@@ -11,3 +11,11 @@ app/tests/expected.json
 .DS_Store
 .ruff_cache/
 bench/results/serve_*.log
+# Frontend evaluation (frontends/): dependencies, build output and test artifacts
+node_modules/
+frontends/*/build/
+frontends/*/dist/
+frontends/*/.svelte-kit/
+frontends/observable/src/.observablehq/
+test-results/
+frontends/measure*.json
