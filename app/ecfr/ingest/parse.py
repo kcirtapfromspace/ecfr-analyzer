@@ -4,7 +4,7 @@ import gzip
 import hashlib
 import xml.etree.ElementTree as ET
 
-from .text import RESTRICTION, WORD, authority, normalize, readability
+from ..core.text import RESTRICTION, WORD, authority, normalize, readability
 
 ANCESTORS = {"SUBTITLE": "subtitle", "CHAPTER": "chapter", "SUBCHAP": "subchapter"}
 

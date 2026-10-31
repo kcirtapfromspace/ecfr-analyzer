@@ -8,10 +8,10 @@ from datetime import datetime, timezone
 
 import duckdb
 
-from .model import CUTOFF, INPUTS
+from ..core.model import CUTOFF, INPUTS, load_json
+from ..core.text import SUMMED, TAGS
 from .parse import parse_parts
-from .source import catalog, download, load_json, stamps
-from .text import SUMMED, TAGS
+from .source import catalog, download, stamps
 
 METRICS_VERSION = "r3"  # bump when per-part metrics change: stored metrics are then recomputed
 PART_COLUMNS = (

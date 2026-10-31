@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 
 from . import queries
-from .source import load_json
+from ..core.model import load_json
 
 
 def create_app(store, site):

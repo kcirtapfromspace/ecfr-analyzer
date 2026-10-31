@@ -8,7 +8,7 @@ import shutil
 import jinja2
 
 from . import queries
-from .source import load_json
+from ..core.model import load_json
 
 HERE = os.path.dirname(os.path.abspath(__file__))  # templates/ and static/ ship inside the package
 STATIC_API = {

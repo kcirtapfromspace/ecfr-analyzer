@@ -30,6 +30,18 @@ The site also gives each part of the CFR a **review candidate** score. The score
 - In the browser, you can sort tables, search agencies and query the Parquet files with SQL (DuckDB-WASM).
 - Each day, GitHub Actions updates the data and publishes the site to GitHub Pages. The data stays on the `data` branch.
 
+## Code layout
+
+| Folder | Purpose |
+|---|---|
+| `app/ecfr/core/` | Shared definitions and text metrics. No network and no database. |
+| `app/ecfr/ingest/` | Downloads the eCFR and builds the Parquet store. |
+| `app/ecfr/web/` | Reads the store. Gives the JSON API and exports the static site. |
+| `app/ecfr/cli.py` | The `ecfr` command: `ingest`, `export` and `serve`. |
+| `app/tests/` | The oracle, the browser tests and the line-count check. |
+
+The `ingest` and `web` folders use only `core`, not each other.
+
 ## Run it
 
 ```sh

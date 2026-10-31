@@ -6,6 +6,8 @@ import os
 import time
 import urllib.request
 
+from ..core.model import load_json
+
 API = "https://www.ecfr.gov/api"
 
 
@@ -30,13 +32,6 @@ def cached(path, make):
             f.write(make())
         os.replace(path + ".tmp", path)
     return path
-
-
-def load_json(path):
-    if not os.path.exists(path):
-        return None
-    with open(path) as f:
-        return json.load(f)
 
 
 def stamps(doc):

@@ -4,8 +4,8 @@ import json
 
 import duckdb
 
-from .model import CUTOFF, INPUTS
-from .text import SUMMED, TYPES
+from ..core.model import CUTOFF, INPUTS
+from ..core.text import SUMMED, TYPES
 
 FIELDS = (
     "slug, name, short_name, parent_slug, words, restrictions, density, parts, checksum, changed, "

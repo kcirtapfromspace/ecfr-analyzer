@@ -7,9 +7,9 @@ serve [--port 8310] [--site site]            JSON API (+ /docs) serving the expo
 
 import argparse
 
-from .api import serve
-from .build import ingest
-from .site import export
+from .ingest.build import ingest
+from .web.api import serve
+from .web.export import export
 
 
 def main():
