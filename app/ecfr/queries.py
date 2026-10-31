@@ -13,6 +13,10 @@ FIELDS = (
     + ", ".join(SUMMED)
 )
 
+TABLE_FIELDS = (
+    "slug, name, short_name, parent_slug, words, density, stale_share, flagged_parts, changed"
+)
+
 
 def ratio(a, b):
     return a / b if b else None
@@ -74,6 +78,11 @@ def agency_list(con):
         agency_json(r)
         for r in query(con, f"SELECT {FIELDS} FROM agencies ORDER BY words DESC, slug")
     ]
+
+
+def agency_table(con):
+    """Just the columns the index table and scatter plot show: a fifth of the agencies.json payload."""
+    return query(con, f"SELECT {TABLE_FIELDS} FROM agencies ORDER BY words DESC, slug")
 
 
 def agency_detail(con, slug):

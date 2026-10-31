@@ -19,10 +19,8 @@ def create_app(store, site):
             raise HTTPException(404, "not found") from None
 
     app.get("/api/meta")(lambda: meta)
-
-    @app.get("/api/agencies")
-    def api_agencies():
-        return call(queries.agency_list)
+    app.get("/api/agencies")(lambda: call(queries.agency_list))
+    app.get("/api/agency-table")(lambda: call(queries.agency_table))
 
     @app.get("/api/agencies/{slug}")
     def api_agency(slug: str):  # also answers the static path /api/agencies/<slug>.json
