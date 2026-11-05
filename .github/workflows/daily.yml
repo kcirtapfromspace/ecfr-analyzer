@@ -16,9 +16,33 @@ permissions:
   pages: write
   id-token: write
 concurrency: {group: ecfr-refresh, cancel-in-progress: false}
+env:
+  # Kill switch: the first run after this date disables this workflow, so the refresh does not run forever.
+  # To extend: change the date, then run `gh workflow enable daily.yml`.
+  STOP_AFTER: "2026-12-04"
 jobs:
-  refresh:
+  gate:
     if: github.repository == 'kcirtapfromspace/ecfr-analyzer' # copies of this repo do not refresh or deploy
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write # disable this workflow
+    outputs:
+      live: ${{ steps.check.outputs.live }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$(date -u +%F)" > "$STOP_AFTER" ]]; then
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/daily.yml/disable"
+            echo "::notice::The refresh stopped after $STOP_AFTER, and this workflow is now disabled."
+            echo live=false >> "$GITHUB_OUTPUT"
+          else
+            echo live=true >> "$GITHUB_OUTPUT"
+          fi
+  refresh:
+    needs: gate
+    if: needs.gate.outputs.live == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: {name: github-pages, url: "${{ steps.deploy.outputs.page_url }}"}

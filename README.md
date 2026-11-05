@@ -1,6 +1,6 @@
 # eCFR Analyzer
 
-This website helps you find federal regulations to examine for deregulation. It uses the full Electronic Code of Federal Regulations (eCFR) and updates each day.
+This website helps you find federal regulations to examine for deregulation. It uses the full Electronic Code of Federal Regulations (eCFR) and updates each day until 4 December 2026.
 
 - **Live site:** https://kcirtapfromspace.github.io/ecfr-analyzer/
 - **JSON API:** [api/openapi.json](https://kcirtapfromspace.github.io/ecfr-analyzer/api/openapi.json)
