@@ -33,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Restore the Parquet store from the data branch
-        run: git clone --depth 1 --branch data "https://github.com/${{ github.repository }}.git" data/app
+        run: git clone --depth 1 --branch data https://github.com/kcirtapfromspace/ecfr-analyzer.git data/app # public, so copies of this repo pass too
       - uses: astral-sh/setup-uv@v6
         with: {python-version: "3.12", enable-cache: true, cache-dependency-glob: uv.lock}
       - run: uv run --frozen --no-dev ecfr export --out site

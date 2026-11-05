@@ -18,6 +18,7 @@ permissions:
 concurrency: {group: ecfr-refresh, cancel-in-progress: false}
 jobs:
   refresh:
+    if: github.repository == 'kcirtapfromspace/ecfr-analyzer' # copies of this repo do not refresh or deploy
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: {name: github-pages, url: "${{ steps.deploy.outputs.page_url }}"}

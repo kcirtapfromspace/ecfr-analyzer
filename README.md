@@ -64,7 +64,7 @@ npm run e2e                                # browser tests of site/ under /ecfr-
 
 - **DuckDB and Parquet.** We measured three backends: Python with SQLite, Python with DuckDB and Parquet, and Rust. The Rust ingest was 2.4 times faster, but this data does not need that speed. With Parquet, the server and the browser query the same files.
 - **Static site.** GitHub Pages hosts the pages and the API as files, so there is no server to operate.
-- **Rule-based sentence types.** Jev is a closed, hosted API that we cannot embed. Rules are easy to explain.
+- **Rule-based sentence types.** Rules run in the app, give the same result each time and are easy to explain. We did not test them against sentences that people labeled.
 - **Pre-rendered pages.** SvelteKit was the first choice for its type checks and tests. But with SvelteKit, the app needs approximately 1,400 lines (an estimate). With a plain JavaScript port, it needs 1,228 lines (branch `raw-js-port`). Jinja pages with one small script keep the app at 1,200 lines.
 - **Size.** The app has 1,200 lines of code (`tokei app --exclude tests`). CI fails above 1,200.
 - **Open item.** The paperwork share controls the top of the list. A ±3 limit on each z-score can correct this. This is not decided.
